@@ -1,0 +1,11 @@
+services:
+  olzsell:
+    build: .
+    env_file: .env
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./plugins:/app/plugins
