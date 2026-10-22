@@ -1,97 +1,87 @@
 # Olzsell
 
-Модульный Telegram-бот для автоматизации работы продавца на Playerok. Архитектурная идея вдохновлена удобством управления и файловыми плагинами FunPayCardinal, но код проекта самостоятельный.
+Модульный Telegram-бот для автоматизации продавца на Playerok. По удобству панели и файловым плагинам ориентируемся на [FunPayCardinal](https://github.com/sidor0912/FunPayCardinal), но проект и код самостоятельные.
 
-> **Статус:** начальная реализация. Playerok интеграция пока изолирована за адаптером: поставляемый плагин работает в demo-режиме и не подтверждает, не отменяет и не изменяет реальные заказы. У неофициальных API-клиентов могут меняться внутренние контракты.
+**Статус:** стартовая реализация. Есть админ-панель Telegram, собственный FastAPI, SQLite/PostgreSQL-ready слой SQLAlchemy, загрузка Python-файлов плагинов, журнал действий и демо-заказы. Реальная интеграция Playerok в этом коммите ещё не подключена: живые заказы не подтверждаются/не меняются и автовыдачи нет.
 
-## Возможности основы
+## Playerok: как работает токен
 
-- Telegram-панель для одного администратора: меню на inline-кнопках.
-- FastAPI с API-key авторизацией.
-- SQLite по умолчанию, модель данных на SQLAlchemy позволяет переключиться на PostgreSQL через `DATABASE_URL`.
-- Плагины из каталога `plugins/` и загрузка Python-файла через Telegram.
-- Плагинный контракт с командами, кнопками управления, настройками и lifecycle.
-- Журнал действий, ограничения размеров загружаемых файлов, проверка имени плагина.
-- Конфигурация через переменные окружения; секреты и cookies не коммитятся.
-- Демо-заказы для проверки панели без подключения к реальным данным.
+В неофициальных клиентах Playerok используется cookie `token` домена `.playerok.com`. В зависимости от выбранной библиотеки и защиты площадки могут также потребоваться cookies защиты DDoS-Guard и такой же User-Agent/IP, как у сессии браузера. Детали меняются, поэтому сверяйте конкретную версию библиотеки с её документацией: [auth](https://playerok-api.readthedocs.io/ru/stable/guide/auth.html), [transports](https://playerok-api.readthedocs.io/ru/stable/guide/transports.html), [источник неофициального клиента](https://github.com/treyder17/PlayerokAPI).
 
-## Что нужно для подключения Playerok
+1. Залогиньтесь на Playerok в браузере.
+2. Откройте DevTools → Application/Storage → Cookies → `https://playerok.com`.
+3. Найдите `token` и положите значение в `PLAYEROK_TOKEN` в локальном `.env`.
+4. Если документация конкретной библиотеки требует дополнительные cookie/User-Agent, храните их только в `.env` или секретном хранилище.
+5. Не присылайте токены/cookies в чат, не коммитьте их в GitHub и не выводите в логи. Эти значения могут дать доступ к сессии аккаунта.
 
-Неофициальные библиотеки обычно используют cookie `token` из домена `.playerok.com`. У некоторых конфигураций защита DDoS-Guard может требовать дополнительные cookies, а запросы должны идти с совместимыми IP и User-Agent. Точные детали зависят от библиотеки и меняются вместе с площадкой.
+## Запуск в Windows PowerShell
 
-1. Войдите в свой аккаунт Playerok в браузере.
-2. В инструментах разработчика откройте Application/Storage → Cookies → `https://playerok.com`.
-3. Скопируйте значение cookie `token` в локальный `.env` (никогда не в GitHub/чат).
-4. Если выбранная библиотека требует дополнительных cookies или User-Agent, используйте документированную ею конфигурацию и держите все значения локально.
-5. Учитывайте, что это неофициальный интерфейс: он может измениться или блокировать автоматизацию. Не делайте обход ограничений доступа и не передавайте cookies третьим лицам.
+Требуется Python 3.11+ и Git.
 
-Ссылки для изучения:
-- [PlayerokAPI auth guide](https://playerok-api.readthedocs.io/ru/stable/guide/auth.html)
-- [PlayerokAPI transports](https://playerok-api.readthedocs.io/ru/stable/guide/transports.html)
-- [Unofficial PlayerokAPI source](https://github.com/treyder17/PlayerokAPI)
-- [FunPayCardinal reference project](https://github.com/sidor0912/FunPayCardinal)
+```powershell
+git clone https://github.com/Olzsen/Olzsell.git
+cd Olzsell
+py -m venv .venv
+.venv\\Scripts\\Activate.ps1
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+notepad .env
+python -m app
+```
 
-## Быстрый старт
-
-Требуется Python 3.11+.
+## Запуск Linux/macOS
 
 ```bash
 git clone https://github.com/Olzsen/Olzsell.git
 cd Olzsell
-python -m venv .venv
-# Windows: .venv\\Scripts\\activate
-# Linux/macOS:
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-```
-
-Заполните `.env`: `TELEGRAM_BOT_TOKEN`, `ADMIN_TELEGRAM_ID`, `API_KEY`, опционально `PLAYEROK_TOKEN`. Затем:
-
-```bash
+nano .env
 python -m app
 ```
 
-Веб API доступен по `http://127.0.0.1:8000/docs`. Не публикуйте API наружу без HTTPS, firewall и смены примеров секретов.
+В `.env` заполните `TELEGRAM_BOT_TOKEN`, `ADMIN_TELEGRAM_ID` (ваш числовой Telegram ID), `API_KEY` (рандомная строка не короче 32 символов). `PLAYEROK_TOKEN` пока опционален: стартовый адаптер не делает запросов к Playerok.
+
+Отправьте боту `/start`. Кнопки открывают разделы «Плагины», «Заказы», «Статус», «Логи». Нажмите «Демо-заказ», чтобы проверить базу без реальной покупки.
 
 ## API
 
-Все `/api/v1/*` endpoints требуют заголовок `X-API-Key`, кроме `/health`.
+API слушает `127.0.0.1:8000` по умолчанию. Swagger: `http://127.0.0.1:8000/docs`. `/health` открыт, всем `/api/v1/*` нужен заголовок `X-API-Key`.
 
-- `GET /health` — health check.
-- `GET /api/v1/plugins` — список плагинов.
-- `POST /api/v1/plugins/{plugin_id}/enable` — включить плагин.
-- `POST /api/v1/plugins/{plugin_id}/disable` — отключить плагин.
-- `GET /api/v1/orders` — список локально сохранённых/демо-заказов.
-- `POST /api/v1/orders/demo` — создать демонстрационный заказ.
+```bash
+curl http://127.0.0.1:8000/health
+curl -H "X-API-Key: YOUR_API_KEY" http://127.0.0.1:8000/api/v1/plugins
+curl -X POST -H "X-API-Key: YOUR_API_KEY" http://127.0.0.1:8000/api/v1/orders/demo
+curl -H "X-API-Key: YOUR_API_KEY" http://127.0.0.1:8000/api/v1/orders
+```
+
+Основные endpoints: `GET /api/v1/plugins`, `POST /api/v1/plugins/{plugin_id}/enable`, `POST /api/v1/plugins/{plugin_id}/disable`, `GET /api/v1/orders`, `POST /api/v1/orders/demo`, `GET /api/v1/audit`.
 
 ## Плагины
 
-Плагины — исполняемый Python-код. Загружайте только доверенные файлы: один плагин имеет права процесса бота. Загрузка проверяет имя, расширение и лимит размера, но **не делает чужой Python-код безопасным**. Для публичного много-пользовательского хостинга нужно отдельное изолированное выполнение плагинов.
+- Встроенные плагины расположены в `plugins/<id>/plugin.py` и наследуются от `app.plugins.PluginBase`.
+- Можно отправить `.py`-файл боту. Он сохраняется как pending и не запускается автоматически.
+- Включать можно только доверенный код: Python-плагин работает с правами всего процесса бота. Проверка имени/размера/синтаксиса не является песочницей.
+- Плагинный контракт поддерживает `on_load(ctx)`, `on_unload()`, `on_order(order)` и `telegram_buttons()`.
 
-Ожидаемый контракт:
+## Docker
 
-```python
-from app.plugins import PluginBase, PluginContext
-
-class ExamplePlugin(PluginBase):
-    plugin_id = "example"
-    name = "Example plugin"
-    version = "1.0.0"
-
-    async def on_load(self, ctx: PluginContext) -> None: ...
-    async def on_unload(self) -> None: ...
-    def telegram_buttons(self): ...
+```bash
+cp .env.example .env
+# запишите секреты в .env
+mkdir -p data logs
+docker compose up --build -d
+docker compose logs -f
 ```
 
-## Безопасность
+Сервис API привязан к localhost. Для удалённого доступа используйте HTTPS reverse proxy и firewall; не публикуйте API без защиты.
 
-- `.env`, database, logs, cookies и реальные данные — локальные, не коммитить.
-- Telegram-обработчики доступны только `ADMIN_TELEGRAM_ID`.
-- API ключ сравнивается в постоянном времени.
-- Не отправляйте значения Playerok cookies в Telegram-логи.
-- Реальные финансовые/торговые действия должны требовать отдельного явного подтверждения администратора и идемпотентной обработки.
+## Хранилище и CI
 
-## Текущий предел
+По умолчанию SQLite (`data/olzsell.db`). Для PostgreSQL задайте `DATABASE_URL=postgresql+asyncpg://user:password@host:5432/olzsell` и обеспечьте миграцию/бэкап данных. GitHub Actions проверяет компиляцию и базовые тесты.
 
-Сейчас Orders plugin использует демо-данные. Включение живого Playerok требует выбрать и проверить конкретную версию клиента, подтвердить список сделок/заказов и формат событий. Автоматическая выдача, подтверждение получения, отмена, поднятие лотов или любые платные операции намеренно не реализованы без верифицированных контрактов.
+## Чего пока нет
+
+Реальные Playerok-запросы и stream событий не проверены на аккаунте: этот шаг требует зафиксировать версию клиента и подтвердить формат заказа. До этого нет автоответов продавцам, автоподтверждения сделки, автовыдачи, отмены заказа или платных операций. Неофициальные интерфейсы могут поменяться, а использование автоматизации должно соответствовать правилам площадки.
