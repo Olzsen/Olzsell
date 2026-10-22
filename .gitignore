@@ -8,10 +8,7 @@ venv/
 *.sqlite
 *.sqlite3
 *.db
-logs/
 data/
+logs/
 .pytest_cache/
 .coverage
-dist/
-build/
-*.egg-info/
