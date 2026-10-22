@@ -4,6 +4,22 @@
 
 **Статус:** стартовая реализация. Есть админ-панель Telegram, собственный FastAPI, SQLite/PostgreSQL-ready слой SQLAlchemy, загрузка Python-файлов плагинов, журнал действий и демо-заказы. Реальная интеграция Playerok в этом коммите ещё не подключена: живые заказы не подтверждаются/не меняются и автовыдачи нет.
 
+## Telegram и VPN/прокси
+
+Если компьютер выходит в интернет через VPN, но Python всё равно не может подключиться к `api.telegram.org`, можно задать локальный HTTP- или SOCKS5-прокси в `.env` через `TELEGRAM_PROXY`. Например, используйте адрес и порт, которые реально указаны в настройках вашего VPN-клиента:
+
+```dotenv
+TELEGRAM_PROXY=http://127.0.0.1:8080
+```
+
+Или для SOCKS5:
+
+```dotenv
+TELEGRAM_PROXY=socks5://127.0.0.1:1080
+```
+
+Это только примеры — порт зависит от VPN-программы. Если VPN маршрутизирует весь системный трафик, оставьте `TELEGRAM_PROXY=` пустым. При сетевых ошибках Telegram бот повторяет попытку с увеличивающейся паузой, а локальный API продолжает работать.
+
 ## Playerok: как работает токен
 
 В неофициальных клиентах Playerok используется cookie `token` домена `.playerok.com`. В зависимости от выбранной библиотеки и защиты площадки могут также потребоваться cookies защиты DDoS-Guard и такой же User-Agent/IP, как у сессии браузера. Детали меняются, поэтому сверяйте конкретную версию библиотеки с её документацией: [auth](https://playerok-api.readthedocs.io/ru/stable/guide/auth.html), [transports](https://playerok-api.readthedocs.io/ru/stable/guide/transports.html), [источник неофициального клиента](https://github.com/treyder17/PlayerokAPI).
@@ -22,7 +38,7 @@
 git clone https://github.com/Olzsen/Olzsell.git
 cd Olzsell
 py -m venv .venv
-.venv\\Scripts\\Activate.ps1
+.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 Copy-Item .env.example .env
 notepad .env
@@ -42,7 +58,7 @@ nano .env
 python -m app
 ```
 
-В `.env` заполните `TELEGRAM_BOT_TOKEN`, `ADMIN_TELEGRAM_ID` (ваш числовой Telegram ID), `API_KEY` (рандомная строка не короче 32 символов). `PLAYEROK_TOKEN` пока опционален: стартовый адаптер не делает запросов к Playerok.
+В `.env` заполните `TELEGRAM_BOT_TOKEN`, `ADMIN_TELEGRAM_ID` (ваш числовой Telegram ID), `API_KEY` (рандомная строка не короче 32 символов). Если Python не может подключиться к Telegram через VPN, задайте `TELEGRAM_PROXY`. `PLAYEROK_TOKEN` пока опционален: стартовый адаптер не делает запросов к Playerok.
 
 Отправьте боту `/start`. Кнопки открывают разделы «Плагины», «Заказы», «Статус», «Логи». Нажмите «Демо-заказ», чтобы проверить базу без реальной покупки.
 
