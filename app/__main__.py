@@ -11,6 +11,7 @@ from app.api import create_app
 from app.bot import register_handlers
 from app.config import Settings
 from app.db import Database
+from app.playerok_config import load_playerok_settings
 from app.plugins import PluginManager
 from app.services import AuditService, OrderService
 from app.telegram_context import TelegramContext
@@ -19,7 +20,8 @@ from app.telegram_context import TelegramContext
 async def main() -> None:
     try:
         settings = Settings()
-    except ValidationError as exc:
+        load_playerok_settings(settings)
+    except (ValidationError, RuntimeError) as exc:
         raise SystemExit(f"Invalid configuration: {exc}") from exc
 
     logging.basicConfig(
@@ -35,8 +37,6 @@ async def main() -> None:
     plugins = PluginManager(settings, audit, orders)
     await plugins.discover_bundled()
 
-    # Telegram proxy is optional. Configure TELEGRAM_PROXY in .env if the
-    # Python process cannot reach api.telegram.org through the system VPN.
     session = AiohttpSession(proxy=settings.telegram_proxy or None)
     bot = Bot(
         token=settings.telegram_bot_token.get_secret_value(),
